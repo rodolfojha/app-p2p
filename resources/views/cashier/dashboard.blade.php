@@ -1,7 +1,7 @@
 {{-- 
     Dashboard Principal para el rol de Cajero.
-    Muestra las solicitudes disponibles y las que ya ha aceptado.
-    INCLUYE FUNCIONALIDAD EN TIEMPO REAL
+    Muestra saldo, ganancias, solicitudes disponibles y las que ya ha aceptado.
+    INCLUYE FUNCIONALIDAD EN TIEMPO REAL CON PUSHER
 --}}
 
 <x-app-layout>
@@ -10,15 +10,29 @@
          class="bg-gray-100 dark:bg-gray-900 min-h-screen">
 
         <div class="flex">
-            {{-- Sidebar Desktop (similar al del vendedor) --}}
+            {{-- Sidebar Desktop --}}
             <aside class="hidden md:flex md:flex-col md:w-64 bg-white dark:bg-gray-800 shadow-lg min-h-screen">
                 <div class="px-6 py-4 border-b dark:border-gray-700">
                     <h1 class="text-2xl font-bold text-gray-800 dark:text-white">MultiPagos (Cajero)</h1>
                 </div>
                 <nav class="flex-1 px-4 py-4 space-y-2">
-                    <a href="#" class="flex items-center px-4 py-2 rounded-lg transition-colors text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700">
-                        <svg class="h-6 w-6 mr-3 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    <a href="#" class="nav-item nav-item-active">
+                        <svg class="nav-icon text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
                         <span>Dashboard</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span>Transacciones</span>
+                    </a>
+                    <a href="#" class="nav-item">
+                        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>Perfil</span>
                     </a>
                 </nav>
             </aside>
@@ -27,7 +41,39 @@
             <div class="flex-1">
                 <div class="max-w-4xl mx-auto px-4 py-6">
                     
-                    <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-6">Panel de Cajero</h1>
+                    {{-- Header Móvil --}}
+                    <header class="md:hidden flex justify-between items-center mb-6">
+                        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Panel de Cajero</h1>
+                        <div class="flex items-center space-x-2">
+                            <button @click="toggleDarkMode()" class="text-gray-700 dark:text-gray-300 hover:text-pink-500 transition-colors">
+                                <svg x-show="!darkMode" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                </svg>
+                                <svg x-show="darkMode" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </header>
+
+                    {{-- Balance Card --}}
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg mb-6">
+                        <div class="flex justify-between items-center">
+                            <div class="text-center">
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Saldo Disponible</p>
+                                <p class="text-2xl font-bold text-gray-800 dark:text-white">${{ number_format(Auth::user()->balance, 2) }}</p>
+                            </div>
+                            <button class="bg-pink-500 hover:bg-pink-600 text-white p-3 rounded-full transition-colors">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M20 20v-5h-5M4 20l5-5M20 4l-5 5" />
+                                </svg>
+                            </button>
+                            <div class="text-center">
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Ganancias</p>
+                                <p class="text-2xl font-bold text-gray-800 dark:text-white">${{ number_format(Auth::user()->earnings, 2) }}</p>
+                            </div>
+                        </div>
+                    </div>
 
                     {{-- Indicador de conexión en tiempo real --}}
                     <div class="mb-4 flex items-center space-x-2">
@@ -41,7 +87,7 @@
                     </div>
 
                     {{-- Sección de Solicitudes Disponibles --}}
-                    <div>
+                    <div class="mb-8">
                         <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">
                             Solicitudes Disponibles 
                             <span x-show="availableTransactions.length > 0" class="text-sm font-normal text-gray-500" x-text="'(' + availableTransactions.length + ')'"></span>
@@ -92,7 +138,7 @@
                     </div>
 
                     {{-- Sección de Transacciones Aceptadas --}}
-                    <div class="mt-8" x-show="acceptedTransactions.length > 0">
+                    <div x-show="acceptedTransactions.length > 0">
                         <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">
                             Mis Transacciones Aceptadas
                             <span class="text-sm font-normal text-gray-500" x-text="'(' + acceptedTransactions.length + ')'"></span>
@@ -130,7 +176,20 @@
         </div>
     </div>
 
-    {{-- JavaScript para tiempo real --}}
+    {{-- Estilos CSS --}}
+    <style>
+        .nav-item {
+            @apply flex items-center px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors;
+        }
+        .nav-item-active {
+            @apply text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-700;
+        }
+        .nav-icon {
+            @apply h-6 w-6 mr-3;
+        }
+    </style>
+
+    {{-- JavaScript para Alpine.js y tiempo real --}}
     <script>
         function cashierDashboardData() {
             return {
@@ -147,61 +206,66 @@
 
                 // Inicialización
                 init() {
-                    this.setupEchoConnection();
+                    this.setupPusherConnection();
                     this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
                 },
 
-                // Configurar conexión en tiempo real
-             setupEchoConnection() {
-    console.log('🔄 Configurando Pusher directo...');
+                // Funciones de utilidad
+                toggleDarkMode() {
+                    this.darkMode = !this.darkMode;
+                },
 
-    // ✅ USAR PUSHER DIRECTO (que sí funciona)
-    window.Pusher.logToConsole = true;
+                // Configurar conexión en tiempo real con Pusher directo
+                setupPusherConnection() {
+                    console.log('🔄 Configurando Pusher directo...');
 
-    const pusher = new Pusher('f1b3a9569a8bd0f48b63', {
-        cluster: 'sa1',
-        forceTLS: true
-    });
+                    // ✅ USAR PUSHER DIRECTO (que funciona)
+                    window.Pusher.logToConsole = true;
 
-    const channel = pusher.subscribe('public-requests');
+                    const pusher = new Pusher('f1b3a9569a8bd0f48b63', {
+                        cluster: 'sa1',
+                        forceTLS: true
+                    });
 
-    // ✅ Listener para nueva transacción
-    channel.bind('new-transaction-request', (data) => {
-        console.log('🎉 NUEVA SOLICITUD RECIBIDA:', data);
-        
-        if (data.transaction) {
-            this.addNewTransaction(data.transaction);
-            this.showNotification('Nueva solicitud: $' + data.transaction.amount);
-        } else {
-            // Usar datos básicos si no hay transaction completa
-            const transactionData = {
-                id: data.transaction_id,
-                type: 'deposito',
-                amount: 100,
-                created_at: new Date().toISOString(),
-                initiator: {
-                    id: 1,
-                    name: 'Vendedor'
-                }
-            };
-            this.addNewTransaction(transactionData);
-            this.showNotification('Nueva solicitud recibida');
-        }
-    });
+                    const channel = pusher.subscribe('public-requests');
 
-    // Eventos de conexión
-    pusher.connection.bind('connected', () => {
-        console.log('✅ Conectado a Pusher directo');
-        this.isConnected = true;
-    });
+                    // ✅ Listener para nueva transacción
+                    channel.bind('new-transaction-request', (data) => {
+                        console.log('🎉 NUEVA SOLICITUD RECIBIDA:', data);
+                        
+                        if (data.transaction) {
+                            this.addNewTransaction(data.transaction);
+                            this.showNotification('Nueva solicitud: $' + data.transaction.amount);
+                        } else {
+                            // Usar datos básicos si no hay transaction completa
+                            const transactionData = {
+                                id: data.transaction_id,
+                                type: 'deposito',
+                                amount: 100,
+                                created_at: new Date().toISOString(),
+                                initiator: {
+                                    id: 1,
+                                    name: 'Vendedor'
+                                }
+                            };
+                            this.addNewTransaction(transactionData);
+                            this.showNotification('Nueva solicitud recibida');
+                        }
+                    });
 
-    pusher.connection.bind('disconnected', () => {
-        console.log('❌ Desconectado de Pusher');
-        this.isConnected = false;
-    });
+                    // Eventos de conexión
+                    pusher.connection.bind('connected', () => {
+                        console.log('✅ Conectado a Pusher directo');
+                        this.isConnected = true;
+                    });
 
-    console.log('✅ Pusher directo configurado');
-},
+                    pusher.connection.bind('disconnected', () => {
+                        console.log('❌ Desconectado de Pusher');
+                        this.isConnected = false;
+                    });
+
+                    console.log('✅ Pusher directo configurado');
+                },
 
                 // Agregar nueva transacción en tiempo real
                 addNewTransaction(transactionData) {
@@ -217,9 +281,6 @@
                     
                     // Incrementar contador
                     this.newRequestsCount++;
-                    
-                    // Mostrar notificación
-                    this.showNotification('Nueva solicitud de ' + transactionData.type);
                     
                     // Quitar el indicador "nuevo" después de 5 segundos
                     setTimeout(() => {
