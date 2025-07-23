@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\Transaction;
 use Illuminate\Support\Facades\DB;
 use Exception;
-use App\Events\NewTransactionRequest; // 1. Importamos la clase del Evento
+use App\Events\NewTransactionRequest;
 
 class TransactionService
 {
@@ -42,11 +42,19 @@ class TransactionService
                 'status'           => 'pending_acceptance',
             ]);
 
-            // 2. Precargamos la información del usuario iniciador para enviarla en el evento.
+            // Precargamos la información del usuario iniciador para enviarla en el evento
             $transaction->load('initiator');
 
-            // 3. ¡Aquí ocurre la magia! Transmitimos el evento a todos los que estén escuchando.
-            broadcast(new NewTransactionRequest($transaction));
+            // ¡Transmitimos el evento a todos los que estén escuchando!
+            broadcast(new NewTransactionRequest($transaction))->toOthers();
+
+            // Log para debugging
+            \Log::info('Nueva transacción creada y evento disparado', [
+                'transaction_id' => $transaction->id,
+                'amount' => $amount,
+                'type' => $type,
+                'initiator' => $user->name
+            ]);
 
             return $transaction;
         });
