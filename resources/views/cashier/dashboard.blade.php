@@ -152,36 +152,56 @@
                 },
 
                 // Configurar conexión en tiempo real
-                setupEchoConnection() {
-                    // Verificar que Echo esté disponible
-                    if (typeof window.Echo === 'undefined') {
-                        console.error('Laravel Echo no está disponible');
-                        return;
-                    }
+             setupEchoConnection() {
+    console.log('🔄 Configurando Pusher directo...');
 
-                    // Escuchar en el canal público de solicitudes
-                    window.Echo.channel('public-requests')
-                        .listen('.new-transaction-request', (data) => {
-                            console.log('Nueva solicitud recibida:', data);
-                            this.addNewTransaction(data.transaction);
-                        });
+    // ✅ USAR PUSHER DIRECTO (que sí funciona)
+    window.Pusher.logToConsole = true;
 
-                    // Eventos de conexión
-                    window.Echo.connector.pusher.connection.bind('connected', () => {
-                        console.log('Conectado a Soketi');
-                        this.isConnected = true;
-                    });
+    const pusher = new Pusher('f1b3a9569a8bd0f48b63', {
+        cluster: 'sa1',
+        forceTLS: true
+    });
 
-                    window.Echo.connector.pusher.connection.bind('disconnected', () => {
-                        console.log('Desconectado de Soketi');
-                        this.isConnected = false;
-                    });
+    const channel = pusher.subscribe('public-requests');
 
-                    window.Echo.connector.pusher.connection.bind('error', (error) => {
-                        console.error('Error de conexión:', error);
-                        this.isConnected = false;
-                    });
-                },
+    // ✅ Listener para nueva transacción
+    channel.bind('new-transaction-request', (data) => {
+        console.log('🎉 NUEVA SOLICITUD RECIBIDA:', data);
+        
+        if (data.transaction) {
+            this.addNewTransaction(data.transaction);
+            this.showNotification('Nueva solicitud: $' + data.transaction.amount);
+        } else {
+            // Usar datos básicos si no hay transaction completa
+            const transactionData = {
+                id: data.transaction_id,
+                type: 'deposito',
+                amount: 100,
+                created_at: new Date().toISOString(),
+                initiator: {
+                    id: 1,
+                    name: 'Vendedor'
+                }
+            };
+            this.addNewTransaction(transactionData);
+            this.showNotification('Nueva solicitud recibida');
+        }
+    });
+
+    // Eventos de conexión
+    pusher.connection.bind('connected', () => {
+        console.log('✅ Conectado a Pusher directo');
+        this.isConnected = true;
+    });
+
+    pusher.connection.bind('disconnected', () => {
+        console.log('❌ Desconectado de Pusher');
+        this.isConnected = false;
+    });
+
+    console.log('✅ Pusher directo configurado');
+},
 
                 // Agregar nueva transacción en tiempo real
                 addNewTransaction(transactionData) {

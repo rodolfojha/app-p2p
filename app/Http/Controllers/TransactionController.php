@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\TransactionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Exception;
 
 class TransactionController extends Controller
@@ -16,12 +17,6 @@ class TransactionController extends Controller
         $this->transactionService = $transactionService;
     }
 
-    /**
-     * Almacena una nueva transacción y devuelve una respuesta JSON.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -31,6 +26,13 @@ class TransactionController extends Controller
 
         try {
             $initiator = Auth::user();
+            
+            // ✅ Log antes de crear
+            Log::info('Creando nueva transacción', [
+                'user_id' => $initiator->id,
+                'amount' => $validated['amount'],
+                'type' => $validated['type']
+            ]);
 
             $transaction = $this->transactionService->createRequest(
                 $initiator,
@@ -38,7 +40,13 @@ class TransactionController extends Controller
                 $validated['type']
             );
 
-            // Si todo va bien, devolvemos una respuesta JSON con la transacción creada.
+            // ✅ Log después de crear
+            Log::info('Transacción creada exitosamente', [
+                'transaction_id' => $transaction->id,
+                'amount' => $transaction->amount,
+                'type' => $transaction->type
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => '¡Solicitud creada con éxito!',
@@ -46,11 +54,16 @@ class TransactionController extends Controller
             ]);
 
         } catch (Exception $e) {
-            // Si algo sale mal, devolvemos un error JSON.
+            // ✅ Log de errores
+            Log::error('Error al crear transacción', [
+                'error' => $e->getMessage(),
+                'user_id' => $initiator->id ?? null
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear la solicitud: ' . $e->getMessage()
-            ], 422); // Código de error para entidad no procesable.
+            ], 422);
         }
     }
 }

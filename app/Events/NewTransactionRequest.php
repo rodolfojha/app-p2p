@@ -13,31 +13,42 @@ class NewTransactionRequest implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    /**
-     * La instancia de la transacción que se acaba de crear.
-     *
-     * @var \App\Models\Transaction
-     */
     public $transaction;
 
-    /**
-     * Crea una nueva instancia del evento.
-     *
-     * @return void
-     */
     public function __construct(Transaction $transaction)
     {
         $this->transaction = $transaction;
+        
+        \Log::info('🚀 Evento NewTransactionRequest creado', [
+            'transaction_id' => $transaction->id,
+            'amount' => $transaction->amount,
+            'type' => $transaction->type,
+        ]);
     }
 
-    /**
-     * Define el canal público en el que se transmitirá el evento.
-     * Todos los cajeros estarán escuchando en este canal.
-     *
-     * @return \Illuminate\Broadcasting\Channel|array
-     */
     public function broadcastOn()
     {
         return new Channel('public-requests');
     }
+
+    public function broadcastAs()
+    {
+        return 'new-transaction-request';
+    }
+
+    public function broadcastWith()
+{
+    return [
+        'transaction' => [
+            'id' => $this->transaction->id,
+            'type' => $this->transaction->type,
+            'amount' => $this->transaction->amount,
+            'created_at' => $this->transaction->created_at->toISOString(),
+            'initiator' => [
+                'id' => $this->transaction->initiator->id,
+                'name' => $this->transaction->initiator->name,
+            ]
+        ]
+    ];
+}
 }

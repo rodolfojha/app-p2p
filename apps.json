@@ -1,0 +1,13 @@
+[
+  {
+    "id": "local",
+    "key": "local",
+    "secret": "local",
+    "maxConnections": 100,
+    "enableClientMessages": true,
+    "enabled": true,
+    "maxBackendEventsPerSecond": 100,
+    "maxClientEventsPerSecond": 60,
+    "maxReadRequestsPerSecond": 100
+  }
+]

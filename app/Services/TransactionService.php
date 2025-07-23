@@ -46,7 +46,7 @@ class TransactionService
             $transaction->load('initiator');
 
             // ¡Transmitimos el evento a todos los que estén escuchando!
-            broadcast(new NewTransactionRequest($transaction))->toOthers();
+          event(new NewTransactionRequest($transaction));
 
             // Log para debugging
             \Log::info('Nueva transacción creada y evento disparado', [
