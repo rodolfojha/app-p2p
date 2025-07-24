@@ -75,6 +75,36 @@
                         </div>
                     </div>
 
+                     {{-- Botón de acceso rápido para cajeros --}}
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Acceso Rápido</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <a href="{{ route('transactions.history') }}" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-4 rounded-xl shadow-lg transition-all duration-200 flex items-center space-x-3">
+                            <div class="bg-white bg-opacity-20 rounded-full p-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold">Historial</p>
+                                <p class="text-sm opacity-90">Ver transacciones</p>
+                            </div>
+                        </a>
+
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl shadow-lg flex items-center space-x-3">
+                            <div class="bg-white bg-opacity-20 rounded-full p-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2V7a2 2 0 012-2h2a2 2 0 002 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 00-2 2h-2a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold">Solicitudes</p>
+                                <p class="text-sm opacity-90" x-text="availableTransactions.length + ' disponibles'"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                     {{-- Indicador de conexión en tiempo real --}}
                     <div class="mb-4 flex items-center space-x-2">
                         <div class="flex items-center space-x-2">

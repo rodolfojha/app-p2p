@@ -87,34 +87,38 @@
                         </div>
                     </div>
 
-                    {{-- Action Buttons Grid --}}
+                   {{-- Action Buttons Grid ACTUALIZADO para vendedores --}}
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center mb-6">
-                        <button @click="openModal('deposito')" class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        {{-- Formulario de depósitos/retiros (NUEVO MÉTODO) --}}
+                        <a href="{{ route('transactions.create') }}" class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                             <svg class="h-8 w-8 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <span class="font-semibold text-sm text-gray-700 dark:text-gray-200">Nueva Transacción</span>
+                        </a>
+
+                        {{-- Depósitos rápidos (MÉTODO ANTERIOR - Modal) --}}
+                        <button @click="openModal('deposito')" class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <svg class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            <span class="font-semibold text-sm text-gray-700 dark:text-gray-200">Depósitos</span>
+                            <span class="font-semibold text-sm text-gray-700 dark:text-gray-200">Depósito Rápido</span>
                         </button>
                         
+                        {{-- Retiros rápidos (MÉTODO ANTERIOR - Modal) --}}
                         <button @click="openModal('retiro')" class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <svg class="h-8 w-8 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5 5.5a2.5 2.5 0 113.536-3.536l6.464 6.464a2.5 2.5 0 11-3.536 3.536L5.5 9.5z" />
                             </svg>
-                            <span class="font-semibold text-sm text-gray-700 dark:text-gray-200">Retiros</span>
+                            <span class="font-semibold text-sm text-gray-700 dark:text-gray-200">Retiro Rápido</span>
                         </button>
                         
-                        <a href="#" class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <svg class="h-8 w-8 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        {{-- Historial --}}
+                        <a href="{{ route('transactions.history') }}" class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <svg class="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="font-semibold text-sm text-gray-700 dark:text-gray-200">Historial</span>
-                        </a>
-                        
-                        <a href="#" class="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center space-y-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                            <svg class="h-8 w-8 text-pink-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span class="font-semibold text-sm text-gray-700 dark:text-gray-200">Ayuda</span>
                         </a>
                     </div>
                     
