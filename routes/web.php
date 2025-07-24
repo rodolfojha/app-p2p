@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TransactionAcceptController; // ✅ Agregar esta línea
 
 /*
 |--------------------------------------------------------------------------
@@ -26,12 +27,27 @@ Route::get('/', function () {
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');
 
+    Route::get('/transaction/{transaction}/chat', [TransactionAcceptController::class, 'showChat'])
+    ->name('transaction.chat')
+    ->middleware('auth');
+
+Route::post('/transactions/{transaction}/accept', [TransactionAcceptController::class, 'accept'])
+    ->name('transactions.accept')
+    ->middleware('auth');
+
+    Route::post('/transaction/{transaction}/payment-sent', [TransactionAcceptController::class, 'markPaymentSent'])
+    ->name('transaction.payment-sent')
+    ->middleware('auth');
+
+Route::post('/transaction/{transaction}/confirm-payment', [TransactionAcceptController::class, 'confirmPayment'])
+    ->name('transaction.confirm-payment')
+    ->middleware('auth');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
+    
     // Ruta para crear las transacciones
     Route::post('/transactions', [TransactionController::class, 'store'])->name('transactions.store');
 });

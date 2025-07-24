@@ -119,43 +119,68 @@
                     </div>
                     
                     {{-- Recent Activity Section --}}
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Actividad Reciente</h2>
-                        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                            <div class="space-y-4">
-                                <template x-for="transaction in activeTransactions" :key="transaction.id">
-                                    <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                        <div class="flex items-center space-x-4">
-                                            <div class="p-2 rounded-full" :class="getTransactionIconClass(transaction.type)">
-                                                <svg x-show="transaction.type === 'deposito'" class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                                </svg>
-                                                <svg x-show="transaction.type === 'retiro'" class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <p class="font-semibold text-gray-800 dark:text-white">
-                                                    <span x-text="formatTransactionType(transaction.type)"></span> de $<span x-text="formatAmount(transaction.amount)"></span>
-                                                </p>
-                                                <p class="text-sm text-gray-500 dark:text-gray-400" x-text="formatStatus(transaction.status)"></p>
-                                            </div>
-                                        </div>
-                                        <a href="#" class="text-sm font-bold text-pink-500 hover:text-pink-600 hover:underline transition-colors">Ver</a>
-                                    </div>
-                                </template>
-                                
-                                <div x-show="activeTransactions.length === 0" class="text-center py-8">
-                                    <div class="text-gray-400 dark:text-gray-500 mb-2">
-                                        <svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </div>
-                                    <p class="text-gray-500 dark:text-gray-400">No tienes actividad reciente</p>
-                                </div>
-                            </div>
+<div>
+    <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4">Actividad Reciente</h2>
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+        <div class="space-y-4">
+            <template x-for="transaction in activeTransactions" :key="transaction.id">
+                <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center space-x-4">
+                        <div class="p-2 rounded-full" :class="getTransactionIconClass(transaction.type)">
+                            <svg x-show="transaction.type === 'deposito'" class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <svg x-show="transaction.type === 'retiro'" class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800 dark:text-white">
+                                <span x-text="formatTransactionType(transaction.type)"></span> de $<span x-text="formatAmount(transaction.amount)"></span>
+                            </p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400" x-text="formatStatus(transaction.status)"></p>
                         </div>
                     </div>
+                    
+                    {{-- Botones dinámicos según el estado --}}
+                    <div>
+                        {{-- Si está pendiente de aceptación --}}
+                        <template x-if="transaction.status === 'pending_acceptance'">
+                            <span class="text-sm font-bold text-orange-500 bg-orange-100 dark:bg-orange-900 px-3 py-1 rounded-full">
+                                Esperando cajero
+                            </span>
+                        </template>
+                        
+                        {{-- Si fue aceptada o pago enviado (puede ir al chat) --}}
+                        <template x-if="transaction.status === 'accepted' || transaction.status === 'payment_sent'">
+                            <a :href="'/transaction/' + transaction.id + '/chat'" 
+                               class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                <span x-show="transaction.status === 'accepted'">Ir al Chat</span>
+                                <span x-show="transaction.status === 'payment_sent'">Ver Chat</span>
+                            </a>
+                        </template>
+                        
+                        {{-- Si está completada --}}
+                        <template x-if="transaction.status === 'completed'">
+                            <span class="text-sm font-bold text-green-500 bg-green-100 dark:bg-green-900 px-3 py-1 rounded-full">
+                                ✅ Completada
+                            </span>
+                        </template>
+                        
+                        {{-- Fallback para otros estados --}}
+                        <template x-if="!['pending_acceptance', 'accepted', 'payment_sent', 'completed'].includes(transaction.status)">
+                            <a href="#" class="text-sm font-bold text-pink-500 hover:text-pink-600 hover:underline transition-colors">Ver</a>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            
+            <div x-show="activeTransactions.length === 0" class="text-center py-8">
+                <div class="text-gray-400 dark:text-gray-500 mb-2">
+                    <svg class="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div
 
                 </div>
             </div>
@@ -339,8 +364,50 @@
 
                 // Inicialización
                 init() {
-                    this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
-                },
+    this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
+    this.setupPusherConnection(); // ✅ Agregar esta línea
+},
+
+setupPusherConnection() {
+    console.log('🔄 Configurando Pusher para vendedor...');
+    
+    const pusher = new Pusher('f1b3a9569a8bd0f48b63', {
+        cluster: 'sa1',
+        forceTLS: true
+    });
+
+    // Escuchar en canal específico del usuario
+    const userChannel = pusher.subscribe('user-{{ Auth::id() }}');
+
+    userChannel.bind('transaction-accepted', (data) => {
+        console.log('🎉 Tu transacción fue aceptada:', data);
+        
+        // Cerrar modal de estado si está abierto
+        this.showStatusModal = false;
+        this.isStatusMinimized = false;
+        
+        // Mostrar notificación
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('¡Transacción aceptada!', {
+                body: 'Tu solicitud fue aceptada. Redirigiendo al chat...',
+                icon: '/favicon.ico'
+            });
+        }
+        
+        // Ir automáticamente al chat después de un breve delay
+        setTimeout(() => {
+            window.location.href = `/transaction/${data.transaction.id}/chat`;
+        }, 1000);
+    });
+
+    userChannel.bind('pusher:subscription_succeeded', () => {
+        console.log('✅ Suscrito al canal user-{{ Auth::id() }}');
+    });
+
+    pusher.connection.bind('connected', () => {
+        console.log('✅ Pusher conectado para vendedor');
+    });
+},
 
                 // Funciones de utilidad
                 toggleDarkMode() {

@@ -290,9 +290,37 @@
                 },
 
                 // Aceptar transacción
-                acceptTransaction(transaction) {
-                    // TODO: Implementar lógica para aceptar transacción
-                    alert('Funcionalidad de aceptar transacción en desarrollo');
+                async acceptTransaction(transaction) {
+                    try {
+                        const response = await fetch(`/transactions/${transaction.id}/accept`, {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        });
+
+                        const result = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(result.message || 'Error al aceptar la transacción');
+                        }
+
+                        // Remover de solicitudes disponibles
+                        this.availableTransactions = this.availableTransactions.filter(t => t.id !== transaction.id);
+                        
+                        // Agregar a transacciones aceptadas
+                        this.acceptedTransactions.unshift(result.transaction);
+                        
+                        alert('Transacción aceptada exitosamente');
+                        
+                        // TODO: Abrir chat en el siguiente paso
+                        window.location.href = `/transaction/${result.transaction.id}/chat`;
+
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error: ' + error.message);
+                    }
                 },
 
                 // Mostrar notificación

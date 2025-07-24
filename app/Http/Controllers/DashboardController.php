@@ -13,46 +13,37 @@ class DashboardController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index()
-    {
-        $user = Auth::user();
+  public function index()
+{
+    $user = Auth::user();
+    
+    if ($user->role === 'cashier') {
+        // Para cajeros: usar vista específica del cajero
+        $availableTransactions = Transaction::where('status', 'pending_acceptance')
+            ->where('initiator_id', '!=', $user->id)
+            ->with('initiator')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        // Si el usuario es un vendedor, le mostramos su dashboard
-        if ($user->role === 'vendedor') {
-            // Buscamos las transacciones iniciadas por el vendedor
-            $activeTransactions = Transaction::where('initiator_id', $user->id)
-                                            ->whereNotIn('status', ['completed', 'cancelled'])
-                                            ->latest()
-                                            ->get();
+        $acceptedTransactions = Transaction::where('participant_id', $user->id)
+            ->whereIn('status', ['accepted', 'payment_sent', 'completed'])
+            ->with(['initiator', 'participant'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-            return view('dashboard', [
-                'activeTransactions' => $activeTransactions
-            ]);
-        }
+        // Retornar vista específica del cajero (tu primera vista)
+        return view('cashier.dashboard', compact('availableTransactions', 'acceptedTransactions'));
+        
+    } else {
+        // Para vendedores: usar vista específica del vendedor
+        $activeTransactions = Transaction::where('initiator_id', $user->id)
+            ->whereIn('status', ['pending_acceptance', 'accepted', 'payment_sent', 'completed'])
+            ->with(['participant'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-        // Si el usuario es un cajero, le mostramos un dashboard diferente
-        if ($user->role === 'cajero') {
-            // Buscamos todas las transacciones que están pendientes de ser aceptadas por cualquier cajero.
-            $availableTransactions = Transaction::where('status', 'pending_acceptance')
-                                                ->with('initiator') // Precargamos la relación para evitar N+1 queries
-                                                ->latest()
-                                                ->get();
-
-            // También buscamos las transacciones que este cajero ya ha aceptado.
-            $acceptedTransactions = Transaction::where('participant_id', $user->id)
-                                               ->whereNotIn('status', ['completed', 'cancelled'])
-                                               ->latest()
-                                               ->get();
-
-            return view('cashier.dashboard', [
-                'availableTransactions' => $availableTransactions,
-                'acceptedTransactions' => $acceptedTransactions
-            ]);
-        }
-
-        // Si es otro rol (como admin), por ahora lo mandamos al dashboard normal.
-        return view('dashboard', [
-            'activeTransactions' => collect() // Una colección vacía por defecto
-        ]);
+        // Retornar la vista original del dashboard
+        return view('dashboard', compact('activeTransactions'));
     }
+}
 }
