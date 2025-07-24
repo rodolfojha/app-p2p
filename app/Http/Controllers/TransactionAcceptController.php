@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transaction;
+use App\Models\TransactionMessage; // ✅ Usar TransactionMessage en lugar de Message
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Events\TransactionAccepted;
@@ -10,6 +11,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use App\Events\PaymentSent;
 use App\Events\PaymentConfirmed;
+use App\Events\NewChatMessage;
+use Illuminate\Support\Facades\Storage;
 
 class TransactionAcceptController extends Controller
 {
@@ -65,10 +68,100 @@ class TransactionAcceptController extends Controller
         // Cargar relaciones
         $transaction->load(['initiator', 'participant']);
 
-        return view('transaction.chat', compact('transaction'));
+        // ✅ Obtener mensajes del chat usando TransactionMessage
+        $messages = TransactionMessage::where('transaction_id', $transaction->id)
+            ->with('user')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // ✅ Marcar mensajes del otro usuario como leídos
+        TransactionMessage::where('transaction_id', $transaction->id)
+            ->where('user_id', '!=', Auth::id())
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return view('transaction.chat', compact('transaction', 'messages'));
     }
 
-    // ✅ MÉTODO ACTUALIZADO PARA MANEJAR AMBOS TIPOS DE TRANSACCIÓN
+    // ✅ NUEVO: Enviar mensaje
+    public function sendMessage(Request $request, Transaction $transaction)
+    {
+        // Verificar permisos
+        if ($transaction->initiator_id !== Auth::id() && $transaction->participant_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes acceso a esta transacción'
+            ], 403);
+        }
+
+        $request->validate([
+            'content' => 'required_without:image|string|max:1000',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('chat_images', 'public');
+        }
+
+        // ✅ Crear mensaje usando TransactionMessage
+        $message = TransactionMessage::create([
+            'transaction_id' => $transaction->id,
+            'user_id' => Auth::id(),
+            'content' => $request->content,
+            'image_path' => $imagePath
+        ]);
+
+        // Cargar relación del usuario
+        $message->load('user');
+
+        // ✅ Broadcast en tiempo real - ajustar para usar transaction_id
+        broadcast(new NewChatMessage($message, $transaction->id))->toOthers();
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'image_url' => $imagePath ? Storage::url($imagePath) : null
+        ]);
+    }
+
+    // ✅ NUEVO: Obtener mensajes
+    public function getMessages(Transaction $transaction)
+    {
+        // Verificar permisos
+        if ($transaction->initiator_id !== Auth::id() && $transaction->participant_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes acceso a esta transacción'
+            ], 403);
+        }
+
+        // ✅ Obtener mensajes usando TransactionMessage
+        $messages = TransactionMessage::where('transaction_id', $transaction->id)
+            ->with('user')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Formatear mensajes para incluir URLs de imágenes
+        $formattedMessages = $messages->map(function ($message) {
+            return [
+                'id' => $message->id,
+                'user_id' => $message->user_id,
+                'user_name' => $message->user->name,
+                'content' => $message->content,
+                'image_path' => $message->image_path,
+                'image_url' => $message->image_path ? Storage::url($message->image_path) : null,
+                'created_at' => $message->created_at->diffForHumans(),
+                'is_mine' => $message->user_id === Auth::id()
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'messages' => $formattedMessages
+        ]);
+    }
+
     public function markPaymentSent(Transaction $transaction)
     {
         // Verificar estado
@@ -119,7 +212,6 @@ class TransactionAcceptController extends Controller
         ]);
     }
 
-    // ✅ MÉTODO ACTUALIZADO PARA CONFIRMACIONES
     public function confirmPayment(Transaction $transaction)
     {
         // Verificar estado

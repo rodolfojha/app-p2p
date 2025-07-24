@@ -2,7 +2,7 @@
 
 namespace App\Events;
 
-use App\Models\Message;
+use App\Models\TransactionMessage; // ✅ Cambiar a TransactionMessage
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -15,19 +15,19 @@ class NewChatMessage implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $message;
-    public $tradeId;
+    public $transactionId; // ✅ Cambiar de tradeId a transactionId
 
     /**
      * Create a new event instance.
      *
-     * @param  \App\Models\Message  $message
-     * @param  int  $tradeId
+     * @param  \App\Models\TransactionMessage  $message
+     * @param  int  $transactionId
      * @return void
      */
-    public function __construct(Message $message, int $tradeId)
+    public function __construct(TransactionMessage $message, int $transactionId)
     {
         $this->message = $message;
-        $this->tradeId = $tradeId;
+        $this->transactionId = $transactionId;
     }
 
     /**
@@ -37,10 +37,9 @@ class NewChatMessage implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        // El canal privado asegura que solo los usuarios autorizados (que pueden escuchar este canal)
-        // reciban el mensaje. Necesitarás configurar la autorización del canal en routes/channels.php
+        // ✅ Usar transactionId en lugar de tradeId
         return [
-            new Channel('trade.chat.' . $this->tradeId), // Canal específico para cada transacción
+            new Channel('transaction.chat.' . $this->transactionId),
         ];
     }
 
@@ -61,10 +60,10 @@ class NewChatMessage implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
-        // Puedes personalizar los datos que se envían. Cargar el usuario es útil.
+        // ✅ Datos actualizados para TransactionMessage
         return [
             'id' => $this->message->id,
-            'trade_id' => $this->message->trade_id,
+            'transaction_id' => $this->message->transaction_id, // ✅ Cambiar de trade_id
             'user_id' => $this->message->user_id,
             'user_name' => $this->message->user->name, // Envía el nombre del usuario
             'content' => $this->message->content,

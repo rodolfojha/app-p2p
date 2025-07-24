@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Transaction extends Model
 {
@@ -38,5 +39,32 @@ class Transaction extends Model
     public function participant()
     {
         return $this->belongsTo(User::class, 'participant_id');
+    }
+
+    /**
+     * ✅ Relación con los mensajes del chat usando TransactionMessage
+     */
+    public function messages(): HasMany
+    {
+        return $this->hasMany(TransactionMessage::class);
+    }
+
+    /**
+     * ✅ Obtener mensajes ordenados por fecha
+     */
+    public function getMessagesOrdered()
+    {
+        return $this->messages()->with('user')->orderBy('created_at', 'asc')->get();
+    }
+
+    /**
+     * ✅ Contar mensajes no leídos para un usuario específico
+     */
+    public function unreadMessagesForUser($userId)
+    {
+        return $this->messages()
+            ->where('user_id', '!=', $userId)
+            ->whereNull('read_at')
+            ->count();
     }
 }
