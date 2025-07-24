@@ -1,4 +1,4 @@
-{{-- Vista básica del chat de transacción --}}
+{{-- Vista del chat con botones dinámicos según tipo de transacción --}}
 <x-app-layout>
     <div x-data="transactionChatData()" 
          :class="{'dark': darkMode === true}"
@@ -33,6 +33,19 @@
                         <p class="text-gray-500 dark:text-gray-400">Cajero:</p>
                         <p class="font-semibold text-gray-800 dark:text-white">{{ $transaction->participant->name }}</p>
                     </div>
+                </div>
+
+                {{-- Indicador del flujo según tipo de transacción --}}
+                <div class="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700">
+                    @if($transaction->type === 'deposito')
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            <strong>Flujo de Depósito:</strong> El vendedor realiza el pago → El cajero confirma recepción
+                        </p>
+                    @else
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            <strong>Flujo de Retiro:</strong> El cajero realiza el pago → El vendedor confirma recepción
+                        </p>
+                    @endif
                 </div>
             </div>
 
@@ -96,25 +109,62 @@
                 </div>
             </div>
 
-            {{-- Botones de acción --}}
+            {{-- ✅ BOTONES DINÁMICOS SEGÚN TIPO DE TRANSACCIÓN --}}
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
                 <div class="flex justify-between items-center">
-                    @if(Auth::id() === $transaction->initiator_id)
-                        {{-- Botón para el vendedor --}}
-                        <button @click="markPaymentSent()" 
-                                class="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-colors">
-                            Pago Realizado
-                        </button>
+                    
+                    @if($transaction->type === 'deposito')
+                        {{-- LÓGICA PARA DEPÓSITOS: Vendedor paga → Cajero confirma --}}
+                        @if(Auth::id() === $transaction->initiator_id && $transaction->status === 'accepted')
+                            {{-- Botón para el vendedor: Marcar pago realizado --}}
+                            <button @click="markPaymentSent()" 
+                                    class="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-colors">
+                                💰 Pago Realizado
+                            </button>
+                        @elseif(Auth::id() === $transaction->participant_id && $transaction->status === 'payment_sent')
+                            {{-- Botón para el cajero: Confirmar recepción --}}
+                            <button @click="confirmPayment()" 
+                                    class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors">
+                                ✅ Confirmar Recepción
+                            </button>
+                        @endif
+
+                    @elseif($transaction->type === 'retiro')
+                        {{-- LÓGICA PARA RETIROS: Cajero paga → Vendedor confirma --}}
+                        @if(Auth::id() === $transaction->participant_id && $transaction->status === 'accepted')
+                            {{-- Botón para el cajero: Marcar pago realizado --}}
+                            <button @click="markPaymentSent()" 
+                                    class="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition-colors">
+                                💰 Pago Realizado
+                            </button>
+                        @elseif(Auth::id() === $transaction->initiator_id && $transaction->status === 'payment_sent')
+                            {{-- Botón para el vendedor: Confirmar recepción --}}
+                            <button @click="confirmPayment()" 
+                                    class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors">
+                                ✅ Confirmar Recepción
+                            </button>
+                        @endif
                     @endif
 
-                    @if(Auth::id() === $transaction->participant_id)
-                        {{-- Botón para el cajero --}}
-                        <button @click="confirmPayment()" 
-                                class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors">
-                            Confirmar Pago
-                        </button>
+                    {{-- Estado visual cuando no hay acción disponible --}}
+                    @if($transaction->status === 'completed')
+                        <div class="flex items-center space-x-2 text-green-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="font-bold">Transacción Completada</span>
+                        </div>
+                    @elseif(
+                        ($transaction->type === 'deposito' && Auth::id() === $transaction->participant_id && $transaction->status === 'accepted') ||
+                        ($transaction->type === 'retiro' && Auth::id() === $transaction->initiator_id && $transaction->status === 'accepted')
+                    )
+                        <div class="text-gray-600 dark:text-gray-400">
+                            <p class="font-semibold">Esperando pago de la otra parte...</p>
+                            <p class="text-sm">Recibirás una notificación cuando se marque como realizado.</p>
+                        </div>
                     @endif
 
+                    {{-- Botón para volver siempre presente --}}
                     <a href="{{ route('dashboard') }}" 
                        class="bg-gray-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-600 transition-colors">
                         Volver al Dashboard
@@ -134,6 +184,7 @@
                 receipts: [],
                 transactionId: {{ $transaction->id }},
                 transactionStatus: '{{ $transaction->status }}',
+                transactionType: '{{ $transaction->type }}', // ✅ Agregar tipo
 
                 init() {
                     this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
@@ -161,12 +212,19 @@
                         console.log('💰 Pago marcado como enviado:', data);
                         this.transactionStatus = 'payment_sent';
                         
-                        // Notificar solo al cajero
-                        @if(Auth::id() === $transaction->participant_id)
-                            alert('El vendedor ha marcado el pago como realizado. Verifica y confirma.');
+                        // ✅ Notificación personalizada según tipo de transacción
+                        @if($transaction->type === 'deposito')
+                            @if(Auth::id() === $transaction->participant_id)
+                                alert('El vendedor ha realizado el depósito. Verifica y confirma la recepción.');
+                            @endif
+                        @elseif($transaction->type === 'retiro')
+                            @if(Auth::id() === $transaction->initiator_id)
+                                alert('El cajero ha realizado el pago. Verifica y confirma la recepción.');
+                            @endif
                         @endif
                         
-                        // NO recargar - solo actualizar estado visual
+                        // Recargar para mostrar botones actualizados
+                        location.reload();
                     });
 
                     // Escuchar confirmación de pago
@@ -193,8 +251,18 @@
                 // ✅ Función para obtener el texto del estado
                 getStatusText() {
                     switch(this.transactionStatus) {
-                        case 'accepted': return 'En proceso';
-                        case 'payment_sent': return 'Pago enviado';
+                        case 'accepted': 
+                            if (this.transactionType === 'deposito') {
+                                return 'Esperando pago del vendedor';
+                            } else {
+                                return 'Esperando pago del cajero';
+                            }
+                        case 'payment_sent': 
+                            if (this.transactionType === 'deposito') {
+                                return 'Pago enviado - Esperando confirmación del cajero';
+                            } else {
+                                return 'Pago enviado - Esperando confirmación del vendedor';
+                            }
                         case 'completed': return 'Completada';
                         default: return 'En proceso';
                     }
@@ -236,7 +304,13 @@
                             throw new Error(result.message || 'Error al marcar el pago');
                         }
 
-                        alert('Pago marcado como realizado. El cajero será notificado.');
+                        // ✅ Mensaje personalizado según tipo
+                        if (this.transactionType === 'deposito') {
+                            alert('Depósito marcado como realizado. El cajero será notificado.');
+                        } else {
+                            alert('Pago marcado como realizado. El vendedor será notificado.');
+                        }
+                        
                         this.transactionStatus = 'payment_sent';
                         location.reload(); // Recargar para actualizar botones
 
@@ -247,7 +321,15 @@
                 },
 
                 async confirmPayment() {
-                    if (!confirm('¿Confirmas que has recibido el pago? Esta acción completará la transacción.')) {
+                    // ✅ Confirmación personalizada según tipo
+                    let confirmMessage;
+                    if (this.transactionType === 'deposito') {
+                        confirmMessage = '¿Confirmas que has recibido el depósito? Esta acción completará la transacción.';
+                    } else {
+                        confirmMessage = '¿Confirmas que has recibido el pago? Esta acción completará la transacción.';
+                    }
+                    
+                    if (!confirm(confirmMessage)) {
                         return;
                     }
 

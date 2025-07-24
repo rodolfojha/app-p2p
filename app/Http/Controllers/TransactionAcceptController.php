@@ -68,21 +68,41 @@ class TransactionAcceptController extends Controller
         return view('transaction.chat', compact('transaction'));
     }
 
+    // ✅ MÉTODO ACTUALIZADO PARA MANEJAR AMBOS TIPOS DE TRANSACCIÓN
     public function markPaymentSent(Transaction $transaction)
     {
-        // Verificar que sea el vendedor (initiator)
-        if ($transaction->initiator_id !== Auth::id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso para realizar esta acción'
-            ], 403);
-        }
-
         // Verificar estado
         if ($transaction->status !== 'accepted') {
             return response()->json([
                 'success' => false,
                 'message' => 'La transacción no está en estado válido'
+            ], 400);
+        }
+
+        $currentUserId = Auth::id();
+
+        // ✅ LÓGICA SEGÚN TIPO DE TRANSACCIÓN
+        if ($transaction->type === 'deposito') {
+            // DEPÓSITO: Solo el vendedor (initiator) puede marcar como enviado
+            if ($transaction->initiator_id !== $currentUserId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'En depósitos, solo el vendedor puede marcar el pago como realizado'
+                ], 403);
+            }
+            
+        } elseif ($transaction->type === 'retiro') {
+            // RETIRO: Solo el cajero (participant) puede marcar como enviado
+            if ($transaction->participant_id !== $currentUserId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'En retiros, solo el cajero puede marcar el pago como realizado'
+                ], 403);
+            }
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tipo de transacción no válido'
             ], 400);
         }
 
@@ -99,21 +119,41 @@ class TransactionAcceptController extends Controller
         ]);
     }
 
+    // ✅ MÉTODO ACTUALIZADO PARA CONFIRMACIONES
     public function confirmPayment(Transaction $transaction)
     {
-        // Verificar que sea el cajero (participant)
-        if ($transaction->participant_id !== Auth::id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes permiso para realizar esta acción'
-            ], 403);
-        }
-
         // Verificar estado
         if ($transaction->status !== 'payment_sent') {
             return response()->json([
                 'success' => false,
                 'message' => 'El pago aún no ha sido marcado como realizado'
+            ], 400);
+        }
+
+        $currentUserId = Auth::id();
+
+        // ✅ LÓGICA SEGÚN TIPO DE TRANSACCIÓN
+        if ($transaction->type === 'deposito') {
+            // DEPÓSITO: Solo el cajero (participant) puede confirmar
+            if ($transaction->participant_id !== $currentUserId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'En depósitos, solo el cajero puede confirmar la recepción'
+                ], 403);
+            }
+            
+        } elseif ($transaction->type === 'retiro') {
+            // RETIRO: Solo el vendedor (initiator) puede confirmar
+            if ($transaction->initiator_id !== $currentUserId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'En retiros, solo el vendedor puede confirmar la recepción'
+                ], 403);
+            }
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tipo de transacción no válido'
             ], 400);
         }
 
