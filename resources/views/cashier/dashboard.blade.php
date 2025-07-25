@@ -4,6 +4,8 @@
     INCLUYE FUNCIONALIDAD EN TIEMPO REAL CON PUSHER
 --}}
 
+
+
 <x-app-layout>
     <div x-data="cashierDashboardData()" 
          :class="{'dark': darkMode === true}"
@@ -21,6 +23,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                         </svg>
                         <span>Dashboard</span>
+                    </a>
+                    {{-- ✅ NUEVO: Enlace a métodos de pago --}}
+                    <a href="{{ route('cashier.payment-methods') }}" class="nav-item">
+                        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                        </svg>
+                        <span>Mis Métodos de Pago</span>
                     </a>
                     <a href="#" class="nav-item">
                         <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -75,10 +84,10 @@
                         </div>
                     </div>
 
-                     {{-- Botón de acceso rápido para cajeros --}}
+                     {{-- ✅ ACTUALIZADO: Botón de acceso rápido para cajeros con métodos de pago --}}
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
                     <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Acceso Rápido</h2>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         <a href="{{ route('transactions.history') }}" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-4 rounded-xl shadow-lg transition-all duration-200 flex items-center space-x-3">
                             <div class="bg-white bg-opacity-20 rounded-full p-2">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,6 +97,19 @@
                             <div>
                                 <p class="font-semibold">Historial</p>
                                 <p class="text-sm opacity-90">Ver transacciones</p>
+                            </div>
+                        </a>
+
+                        {{-- ✅ NUEVO: Botón para gestionar métodos de pago --}}
+                        <a href="{{ route('cashier.payment-methods') }}" class="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-4 rounded-xl shadow-lg transition-all duration-200 flex items-center space-x-3">
+                            <div class="bg-white bg-opacity-20 rounded-full p-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold">Métodos de Pago</p>
+                                <p class="text-sm opacity-90">Gestionar cuentas</p>
                             </div>
                         </a>
 
@@ -220,6 +242,7 @@
     </style>
 
     {{-- JavaScript para Alpine.js y tiempo real --}}
+    {{-- JavaScript para Alpine.js y tiempo real --}}
     <script>
         function cashierDashboardData() {
             return {
@@ -238,6 +261,13 @@
                 init() {
                     this.setupPusherConnection();
                     this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
+                    
+                    // 🔍 DEBUG: Verificar datos iniciales
+                    console.log('Datos iniciales del cajero:', {
+                        availableCount: this.availableTransactions.length,
+                        acceptedCount: this.acceptedTransactions.length,
+                        availableTransactions: this.availableTransactions
+                    });
                 },
 
                 // Funciones de utilidad
@@ -265,7 +295,7 @@
                         
                         if (data.transaction) {
                             this.addNewTransaction(data.transaction);
-                            this.showNotification('Nueva solicitud: $' + data.transaction.amount);
+                            this.showNotification('Nueva solicitud: $' + data.transaction.amount); // ✅ CORREGIDO
                         } else {
                             // Usar datos básicos si no hay transaction completa
                             const transactionData = {
@@ -344,7 +374,7 @@
                         
                         alert('Transacción aceptada exitosamente');
                         
-                        // TODO: Abrir chat en el siguiente paso
+                        // Abrir chat
                         window.location.href = `/transaction/${result.transaction.id}/chat`;
 
                     } catch (error) {

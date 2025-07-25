@@ -95,6 +95,42 @@ class User extends Authenticatable
     }
 
     /**
+     * ✅ NUEVA RELACIÓN: Métodos de pago del cajero
+     */
+    public function paymentMethods()
+    {
+        return $this->hasMany(CashierPaymentMethod::class);
+    }
+
+    /**
+     * ✅ NUEVO: Obtener método de pago principal del cajero
+     */
+    public function getPrimaryPaymentMethod()
+    {
+        return $this->paymentMethods()
+                    ->where('is_active', true)
+                    ->where('is_primary', true)
+                    ->first();
+    }
+
+    /**
+     * ✅ NUEVO: Obtener método de pago por defecto del cajero
+     */
+    public function getDefaultPaymentMethod()
+    {
+        $primary = $this->getPrimaryPaymentMethod();
+        
+        if ($primary) {
+            return $primary;
+        }
+
+        return $this->paymentMethods()
+                    ->where('is_active', true)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+    }
+
+    /**
      * ✅ Transacciones iniciadas
      */
     public function initiatedTransactions()

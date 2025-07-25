@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TransactionAcceptController;
+use App\Http\Controllers\CashierPaymentMethodController;
+use App\Http\Controllers\AdminDashboardController; // ✅ NUEVO
 
 /*
 |--------------------------------------------------------------------------
@@ -16,10 +18,33 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Dashboard principal
+// Dashboard principal (detecta automáticamente el rol)
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+// ✅ NUEVAS RUTAS ADMINISTRATIVAS
+Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
+    // Dashboard administrativo
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])
+        ->name('admin.dashboard');
+    
+    // Gestión de usuarios
+    Route::get('/users', [AdminDashboardController::class, 'users'])
+        ->name('admin.users');
+    
+    // Gestión de transacciones
+    Route::get('/transactions', [AdminDashboardController::class, 'transactions'])
+        ->name('admin.transactions');
+    
+    // Configuración del sistema
+    Route::get('/settings', [AdminDashboardController::class, 'settings'])
+        ->name('admin.settings');
+    
+    // Exportación de datos
+    Route::post('/export', [AdminDashboardController::class, 'export'])
+        ->name('admin.export');
+});
 
 // Rutas de transacciones
 Route::middleware('auth')->group(function () {
@@ -44,26 +69,40 @@ Route::middleware('auth')->group(function () {
     Route::post('/transaction/{transaction}/confirm-payment', [TransactionAcceptController::class, 'confirmPayment'])
         ->name('transaction.confirm-payment');
     
-    // ✅ NUEVAS RUTAS PARA FORMULARIOS Y HISTORIAL
-    // Formulario de nueva transacción
+    // Rutas para formularios y historial
     Route::get('/transactions/create', [TransactionController::class, 'create'])
         ->name('transactions.create');
     
-    // ✅ NUEVA: Obtener información de banco vía AJAX
     Route::post('/transactions/bank-info', [TransactionController::class, 'getBankInfo'])
         ->name('transactions.bank-info');
     
-    // Preview de comisiones (AJAX)
     Route::post('/transactions/preview-commissions', [TransactionController::class, 'previewCommissions'])
         ->name('transactions.preview-commissions');
     
-    // Historial de transacciones
     Route::get('/transactions/history', [TransactionController::class, 'history'])
         ->name('transactions.history');
     
-    // Crear transacciones
     Route::post('/transactions', [TransactionController::class, 'store'])
         ->name('transactions.store');
+});
+
+// Métodos de pago de cajeros
+Route::middleware('auth')->prefix('cashier')->group(function () {
+    // Gestión de métodos de pago
+    Route::get('/payment-methods', [CashierPaymentMethodController::class, 'index'])
+        ->name('cashier.payment-methods');
+    
+    Route::post('/payment-methods', [CashierPaymentMethodController::class, 'store'])
+        ->name('cashier.payment-methods.store');
+    
+    Route::put('/payment-methods/{paymentMethod}', [CashierPaymentMethodController::class, 'update'])
+        ->name('cashier.payment-methods.update');
+    
+    Route::delete('/payment-methods/{paymentMethod}', [CashierPaymentMethodController::class, 'destroy'])
+        ->name('cashier.payment-methods.destroy');
+    
+    Route::post('/payment-methods/{paymentMethod}/make-primary', [CashierPaymentMethodController::class, 'makePrimary'])
+        ->name('cashier.payment-methods.make-primary');
 });
 
 // Rutas de perfil
