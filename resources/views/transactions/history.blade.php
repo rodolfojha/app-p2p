@@ -1,4 +1,4 @@
-{{-- Historial de transacciones --}}
+{{-- Historial de transacciones con información bancaria --}}
 <x-app-layout>
     <div x-data="transactionHistoryData()" 
          :class="{'dark': darkMode === true}"
@@ -139,7 +139,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Monto</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Comisión</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Banco</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Participantes</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha</th>
@@ -160,8 +160,21 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                                         ${{ number_format($transaction->amount, 2) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                                        ${{ number_format($transaction->total_commission, 2) }}
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        @if($transaction->bank_name)
+                                            <div class="flex items-center space-x-2">
+                                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                                     style="background-color: {{ $transaction->bank?->color ?? '#6B7280' }}">
+                                                    {{ substr($transaction->bank_name, 0, 1) }}
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{ $transaction->bank_name }}</p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $transaction->account_number }}</p>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <span class="text-gray-400 text-sm">-</span>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @php
@@ -188,14 +201,21 @@
                                         {{ $transaction->created_at->format('d/m/Y H:i') }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        @if(in_array($transaction->status, ['accepted', 'payment_sent']) && $transaction->participant_id)
-                                            <a href="{{ route('transaction.chat', $transaction) }}" 
-                                               class="text-pink-600 hover:text-pink-900 dark:text-pink-400 dark:hover:text-pink-300">
-                                                Ver Chat
-                                            </a>
-                                        @else
-                                            <span class="text-gray-400">-</span>
-                                        @endif
+                                        <div class="flex space-x-2">
+                                            @if(in_array($transaction->status, ['accepted', 'payment_sent']) && $transaction->participant_id)
+                                                <a href="{{ route('transaction.chat', $transaction) }}" 
+                                                   class="text-pink-600 hover:text-pink-900 dark:text-pink-400 dark:hover:text-pink-300 text-xs px-2 py-1 bg-pink-100 dark:bg-pink-900/20 rounded">
+                                                    Chat
+                                                </a>
+                                            @endif
+                                            
+                                            @if($transaction->bank_name)
+                                                <button @click="showBankDetails({{ $transaction->id }})" 
+                                                        class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/20 rounded">
+                                                    Banco
+                                                </button>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
@@ -223,15 +243,71 @@
                 @endif
             </div>
         </div>
+
+        {{-- Modal de detalles bancarios --}}
+        <div x-show="showModal" x-cloak 
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+             @click.outside="closeModal()">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6 m-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">Información Bancaria</h3>
+                    <button @click="closeModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div x-show="selectedTransaction" class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Banco:</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="selectedTransaction?.bank_name"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Número de cuenta:</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="selectedTransaction?.account_number"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Tipo:</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="selectedTransaction?.account_type"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Titular:</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="selectedTransaction?.account_holder_name"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Identificación:</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="selectedTransaction?.account_holder_id"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">WhatsApp:</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="selectedTransaction?.whatsapp_number"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         function transactionHistoryData() {
             return {
                 darkMode: localStorage.getItem('darkMode') === 'true',
+                showModal: false,
+                selectedTransaction: null,
+                transactions: @json($transactions->items()),
 
                 init() {
                     this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
+                },
+
+                showBankDetails(transactionId) {
+                    this.selectedTransaction = this.transactions.find(t => t.id === transactionId);
+                    this.showModal = true;
+                },
+
+                closeModal() {
+                    this.showModal = false;
+                    this.selectedTransaction = null;
                 }
             }
         }

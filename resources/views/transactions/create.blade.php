@@ -1,20 +1,20 @@
-{{-- Formulario mejorado para transacciones --}}
+{{-- Formulario simple con selección de bancos y preview funcional --}}
 <x-app-layout>
-    <div x-data="transactionFormData()" 
+    <div x-data="simpleTransactionForm()" 
          :class="{'dark': darkMode === true}"
          class="bg-gray-100 dark:bg-gray-900 min-h-screen">
 
-        <div class="max-w-4xl mx-auto px-4 py-6">
+        <div class="max-w-6xl mx-auto px-4 py-6">
             
             {{-- Header --}}
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
-                <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Crear Nueva Transacción</h1>
-                <p class="text-gray-600 dark:text-gray-400">Completa los datos para iniciar un depósito o retiro</p>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white mb-2">Nueva Transacción</h1>
+                <p class="text-gray-600 dark:text-gray-400">Completa la información para crear tu transacción</p>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
-                {{-- Formulario --}}
+                {{-- Formulario principal --}}
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
                     <form @submit.prevent="submitTransaction()" class="space-y-6">
                         
@@ -23,14 +23,9 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Tipo de Transacción</label>
                             <div class="grid grid-cols-2 gap-3">
                                 <label class="cursor-pointer">
-                                    <input type="radio" 
-                                           name="type" 
-                                           value="deposito" 
-                                           x-model="form.type"
-                                           @change="calculatePreview()"
-                                           class="sr-only">
+                                    <input type="radio" value="deposito" x-model="form.type" @change="calculatePreview()" class="sr-only">
                                     <div class="p-4 rounded-lg border-2 transition-all"
-                                         :class="form.type === 'deposito' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-green-300'">
+                                         :class="form.type === 'deposito' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-600'">
                                         <div class="flex items-center space-x-3">
                                             <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
                                                 <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,21 +34,16 @@
                                             </div>
                                             <div>
                                                 <p class="font-medium text-gray-900 dark:text-white">Depósito</p>
-                                                <p class="text-xs text-gray-500 dark:text-gray-400">Recibir dinero</p>
+                                                <p class="text-xs text-gray-500">Recibir dinero</p>
                                             </div>
                                         </div>
                                     </div>
                                 </label>
                                 
                                 <label class="cursor-pointer">
-                                    <input type="radio" 
-                                           name="type" 
-                                           value="retiro" 
-                                           x-model="form.type"
-                                           @change="calculatePreview()"
-                                           class="sr-only">
+                                    <input type="radio" value="retiro" x-model="form.type" @change="calculatePreview()" class="sr-only">
                                     <div class="p-4 rounded-lg border-2 transition-all"
-                                         :class="form.type === 'retiro' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-200 dark:border-gray-600 hover:border-red-300'">
+                                         :class="form.type === 'retiro' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' : 'border-gray-200 dark:border-gray-600'">
                                         <div class="flex items-center space-x-3">
                                             <div class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
                                                 <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,7 +52,7 @@
                                             </div>
                                             <div>
                                                 <p class="font-medium text-gray-900 dark:text-white">Retiro</p>
-                                                <p class="text-xs text-gray-500 dark:text-gray-400">Enviar dinero</p>
+                                                <p class="text-xs text-gray-500">Enviar dinero</p>
                                             </div>
                                         </div>
                                     </div>
@@ -70,21 +60,84 @@
                             </div>
                         </div>
 
+                        {{-- Selección de banco --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Banco</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                @foreach($availableBanks as $bank)
+                                <label class="cursor-pointer">
+                                    <input type="radio" value="{{ $bank->code }}" x-model="form.bank_code" @change="loadBankInfo()" class="sr-only">
+                                    <div class="p-3 rounded-lg border-2 transition-all"
+                                         :class="form.bank_code === '{{ $bank->code }}' ? 'border-2' : 'border-gray-200 dark:border-gray-600'"
+                                         :style="form.bank_code === '{{ $bank->code }}' ? 'border-color: {{ $bank->color }}; background-color: {{ $bank->color }}15;' : ''">
+                                        <div class="text-center">
+                                            <div class="w-10 h-10 mx-auto mb-2 rounded-full flex items-center justify-center text-white font-bold"
+                                                 style="background-color: {{ $bank->color }}">
+                                                {{ substr($bank->name, 0, 1) }}
+                                            </div>
+                                            <p class="font-medium text-gray-900 dark:text-white text-sm">{{ $bank->name }}</p>
+                                        </div>
+                                    </div>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Información bancaria --}}
+                        <div x-show="form.bank_code" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        <span x-show="selectedBankInfo?.is_digital_wallet">Número de teléfono</span>
+                                        <span x-show="!selectedBankInfo?.is_digital_wallet">Número de cuenta</span>
+                                    </label>
+                                    <input type="text" x-model="form.account_number" 
+                                           :placeholder="selectedBankInfo?.is_digital_wallet ? '3001234567' : '1234567890'"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-500" required>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de cuenta</label>
+                                    <select x-model="form.account_type" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-500" required>
+                                        <option value="">Selecciona</option>
+                                        <template x-for="accountType in selectedBankInfo?.account_types || []" :key="accountType.value">
+                                            <option :value="accountType.value" x-text="accountType.label"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">WhatsApp</label>
+                                    <input type="text" x-model="form.whatsapp_number" placeholder="3001234567"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-500" required>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del titular</label>
+                                    <input type="text" x-model="form.account_holder_name" placeholder="Juan Pérez"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-500" required>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Número de identificación</label>
+                                <input type="text" x-model="form.account_holder_id" placeholder="12345678"
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-500" required>
+                            </div>
+                        </div>
+
                         {{-- Monto --}}
                         <div>
-                            <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Monto</label>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Monto</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <span class="text-gray-500 text-lg">$</span>
                                 </div>
-                                <input type="number" 
-                                       step="0.01" 
-                                       min="0.01"
-                                       x-model="form.amount" 
-                                       @input="calculatePreview()"
-                                       placeholder="0.00" 
-                                       class="block w-full pl-8 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                                       required>
+                                <input type="number" step="0.01" min="0.01" x-model="form.amount" 
+                                       @input="calculatePreview()" placeholder="0.00" 
+                                       class="block w-full pl-8 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500" required>
                                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                     <span class="text-gray-500 text-sm">USD</span>
                                 </div>
@@ -96,12 +149,7 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Manejo de Comisión</label>
                             <div class="space-y-3">
                                 <label class="cursor-pointer">
-                                    <input type="radio" 
-                                           name="commission_type" 
-                                           value="deduct_from_total" 
-                                           x-model="form.commission_type"
-                                           @change="calculatePreview()"
-                                           class="sr-only">
+                                    <input type="radio" value="deduct_from_total" x-model="form.commission_type" @change="calculatePreview()" class="sr-only">
                                     <div class="p-3 rounded-lg border transition-all"
                                          :class="form.commission_type === 'deduct_from_total' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-600'">
                                         <div class="flex items-center space-x-3">
@@ -118,12 +166,7 @@
                                 </label>
                                 
                                 <label class="cursor-pointer">
-                                    <input type="radio" 
-                                           name="commission_type" 
-                                           value="add_to_client" 
-                                           x-model="form.commission_type"
-                                           @change="calculatePreview()"
-                                           class="sr-only">
+                                    <input type="radio" value="add_to_client" x-model="form.commission_type" @change="calculatePreview()" class="sr-only">
                                     <div class="p-3 rounded-lg border transition-all"
                                          :class="form.commission_type === 'add_to_client' ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-600'">
                                         <div class="flex items-center space-x-3">
@@ -143,15 +186,13 @@
 
                         {{-- Botones --}}
                         <div class="flex space-x-4 pt-4">
-                            <button type="button" 
-                                    @click="window.history.back()"
+                            <button type="button" @click="window.history.back()"
                                     class="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
                                 Cancelar
                             </button>
-                            <button type="submit" 
-                                    :disabled="!isFormValid || isSubmitting"
+                            <button type="submit" :disabled="!isFormValid || isSubmitting"
                                     class="flex-1 bg-pink-600 hover:bg-pink-700 disabled:bg-gray-400 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:cursor-not-allowed flex items-center justify-center">
-                                <span x-show="!isSubmitting">Crear Solicitud</span>
+                                <span x-show="!isSubmitting">Crear Transacción</span>
                                 <span x-show="isSubmitting" class="flex items-center space-x-2">
                                     <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -164,11 +205,28 @@
                     </form>
                 </div>
 
-                {{-- Preview de comisiones --}}
+                {{-- Panel lateral: Preview --}}
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
                     <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Vista Previa</h3>
                     
-                    <div x-show="!preview" class="text-center py-8">
+                    {{-- Vista previa básica --}}
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Tipo:</span>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="form.type ? form.type.charAt(0).toUpperCase() + form.type.slice(1) : '-'"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Banco:</span>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="selectedBankInfo?.name || '-'"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600 dark:text-gray-400">Monto:</span>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white" x-text="form.amount ? '$' + parseFloat(form.amount).toFixed(2) : '-'"></span>
+                        </div>
+                    </div>
+
+                    {{-- Preview de comisiones (copiado del formulario que funciona) --}}
+                    <div x-show="!preview && form.amount <= 0" class="text-center py-8">
                         <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                             <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
@@ -235,14 +293,21 @@
     </div>
 
     <script>
-        function transactionFormData() {
+        function simpleTransactionForm() {
             return {
                 darkMode: localStorage.getItem('darkMode') === 'true',
                 isSubmitting: false,
                 preview: null,
+                selectedBankInfo: null,
                 
                 form: {
                     type: 'deposito',
+                    bank_code: '',
+                    account_number: '',
+                    account_type: '',
+                    whatsapp_number: '',
+                    account_holder_name: '',
+                    account_holder_id: '',
                     amount: '',
                     commission_type: 'deduct_from_total'
                 },
@@ -253,10 +318,44 @@
 
                 get isFormValid() {
                     return this.form.type && 
+                           this.form.bank_code && 
+                           this.form.account_number && 
+                           this.form.account_type && 
+                           this.form.whatsapp_number && 
+                           this.form.account_holder_name && 
+                           this.form.account_holder_id && 
                            this.form.amount > 0 && 
                            this.form.commission_type;
                 },
 
+                async loadBankInfo() {
+                    if (!this.form.bank_code) {
+                        this.selectedBankInfo = null;
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/transactions/bank-info', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({ bank_code: this.form.bank_code })
+                        });
+
+                        const result = await response.json();
+                        if (result.success) {
+                            this.selectedBankInfo = result.data;
+                            console.log('Bank info loaded:', this.selectedBankInfo);
+                        }
+                    } catch (error) {
+                        console.error('Error loading bank info:', error);
+                    }
+                },
+
+                // Función idéntica a la del formulario que funciona
                 async calculatePreview() {
                     if (!this.form.amount || this.form.amount <= 0) {
                         this.preview = null;
@@ -306,32 +405,14 @@
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                             },
-                            body: JSON.stringify({
-                                amount: parseFloat(this.form.amount),
-                                type: this.form.type,
-                                commission_type: this.form.commission_type
-                            })
+                            body: JSON.stringify(this.form)
                         });
 
                         const result = await response.json();
 
                         if (result.success) {
-                            // Mostrar éxito
-                            this.showSuccessMessage(result);
-                            
-                            // Limpiar formulario
-                            this.form = {
-                                type: 'deposito',
-                                amount: '',
-                                commission_type: 'deduct_from_total'
-                            };
-                            this.preview = null;
-
-                            // Redirigir al dashboard después de un momento
-                            setTimeout(() => {
-                                window.location.href = '/dashboard';
-                            }, 2000);
-
+                            alert('¡Transacción creada exitosamente con información bancaria!');
+                            window.location.href = '/dashboard';
                         } else {
                             throw new Error(result.message || 'Error al crear la transacción');
                         }
@@ -342,28 +423,6 @@
                     } finally {
                         this.isSubmitting = false;
                     }
-                },
-
-                showSuccessMessage(result) {
-                    const commission = result.commission_data;
-                    const transaction = result.transaction;
-
-                    let message = `¡Transacción creada exitosamente!\n\n`;
-                    message += `Tipo: ${transaction.type.toUpperCase()}\n`;
-                    message += `Monto original: $${commission.commissions.total_commission ? (parseFloat(this.form.amount)).toFixed(2) : this.form.amount}\n`;
-                    message += `Monto final: $${commission.final_amount.toFixed(2)}\n`;
-                    message += `Comisión total: $${commission.commissions.total_commission.toFixed(2)}\n\n`;
-                    message += `La solicitud está disponible para que los cajeros la acepten.`;
-
-                    alert(message);
-                },
-
-                // Función para formatear números
-                formatCurrency(amount) {
-                    return new Intl.NumberFormat('es-US', {
-                        style: 'currency',
-                        currency: 'USD'
-                    }).format(amount);
                 }
             }
         }

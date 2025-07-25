@@ -49,6 +49,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions/create', [TransactionController::class, 'create'])
         ->name('transactions.create');
     
+    // ✅ NUEVA: Obtener información de banco vía AJAX
+    Route::post('/transactions/bank-info', [TransactionController::class, 'getBankInfo'])
+        ->name('transactions.bank-info');
+    
     // Preview de comisiones (AJAX)
     Route::post('/transactions/preview-commissions', [TransactionController::class, 'previewCommissions'])
         ->name('transactions.preview-commissions');

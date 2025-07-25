@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\TransactionService;
 use App\Services\CommissionService;
 use App\Models\CommissionSettings;
+use App\Models\AvailableBank;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -22,19 +23,53 @@ class TransactionController extends Controller
     }
 
     /**
-     * ✅ Mostrar formulario de nueva transacción
+     * ✅ Mostrar formulario de nueva transacción (actualizado con bancos)
      */
     public function create()
     {
         // Obtener configuraciones de comisiones
         $depositoSettings = CommissionSettings::getActiveSettings('deposito');
         $retiroSettings = CommissionSettings::getActiveSettings('retiro');
+        
+        // ✅ Obtener bancos disponibles
+        $availableBanks = AvailableBank::getActiveBanks();
 
-        return view('transactions.create', compact('depositoSettings', 'retiroSettings'));
+        return view('transactions.create', compact('depositoSettings', 'retiroSettings', 'availableBanks'));
     }
 
     /**
-     * ✅ Preview de comisiones vía AJAX
+     * ✅ Obtener información de banco vía AJAX
+     */
+    public function getBankInfo(Request $request)
+    {
+        $request->validate([
+            'bank_code' => 'required|string'
+        ]);
+
+        $bank = AvailableBank::getByCode($request->bank_code);
+
+        if (!$bank) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Banco no encontrado'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'name' => $bank->name,
+                'code' => $bank->code,
+                'color' => $bank->color,
+                'account_types' => $bank->formatted_account_types,
+                'is_digital_wallet' => $bank->isDigitalWallet(),
+                'is_traditional_bank' => $bank->isTraditionalBank()
+            ]
+        ]);
+    }
+
+    /**
+     * ✅ Preview de comisiones (sin cambios)
      */
     public function previewCommissions(Request $request)
     {
@@ -72,31 +107,55 @@ class TransactionController extends Controller
     }
 
     /**
-     * ✅ Crear nueva transacción con comisiones
+     * ✅ Crear nueva transacción con información bancaria
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0.01',
             'type' => 'required|string|in:deposito,retiro',
-            'commission_type' => 'required|string|in:deduct_from_total,add_to_client'
+            'commission_type' => 'required|string|in:deduct_from_total,add_to_client',
+            
+            // ✅ Nuevos campos bancarios
+            'bank_code' => 'required|string|exists:available_banks,code',
+            'account_number' => 'required|string|max:50',
+            'account_type' => 'required|string',
+            'whatsapp_number' => 'required|string|max:20',
+            'account_holder_name' => 'required|string|max:100',
+            'account_holder_id' => 'required|string|max:20',
         ]);
 
         try {
             $initiator = Auth::user();
             
-            Log::info('Creando nueva transacción con comisiones', [
+            // ✅ Verificar que el banco exista y el tipo de cuenta sea válido
+            $bank = AvailableBank::getByCode($validated['bank_code']);
+            if (!$bank || !in_array($validated['account_type'], $bank->account_types)) {
+                throw new Exception('Tipo de cuenta no válido para el banco seleccionado');
+            }
+            
+            Log::info('Creando nueva transacción con información bancaria', [
                 'user_id' => $initiator->id,
                 'amount' => $validated['amount'],
                 'type' => $validated['type'],
-                'commission_type' => $validated['commission_type']
+                'bank' => $validated['bank_code'],
+                'account_type' => $validated['account_type']
             ]);
 
-            // Crear la transacción
-            $transaction = $this->transactionService->createRequest(
+            // Crear la transacción con información bancaria
+            $transaction = $this->transactionService->createRequestWithBankInfo(
                 $initiator,
                 $validated['amount'],
-                $validated['type']
+                $validated['type'],
+                [
+                    'bank_name' => $bank->name,
+                    'bank_code' => $bank->code,
+                    'account_number' => $validated['account_number'],
+                    'account_type' => $validated['account_type'],
+                    'whatsapp_number' => $validated['whatsapp_number'],
+                    'account_holder_name' => $validated['account_holder_name'],
+                    'account_holder_id' => $validated['account_holder_id'],
+                ]
             );
 
             // Calcular y asignar comisiones
@@ -106,21 +165,25 @@ class TransactionController extends Controller
                 $validated['commission_type']
             );
 
-            Log::info('Transacción creada exitosamente con comisiones', [
+            Log::info('Transacción creada exitosamente con información bancaria', [
                 'transaction_id' => $transaction->id,
-                'final_amount' => $commissionData['final_amount'],
-                'total_commission' => $commissionData['commissions']['total_commission']
+                'bank' => $bank->name,
+                'final_amount' => $commissionData['final_amount']
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => '¡Solicitud creada con éxito!',
                 'transaction' => $transaction->load(['initiator', 'participant']),
-                'commission_data' => $commissionData
+                'commission_data' => $commissionData,
+                'bank_info' => [
+                    'name' => $bank->name,
+                    'color' => $bank->color
+                ]
             ]);
 
         } catch (Exception $e) {
-            Log::error('Error al crear transacción', [
+            Log::error('Error al crear transacción con información bancaria', [
                 'error' => $e->getMessage(),
                 'user_id' => $initiator->id ?? null
             ]);
@@ -133,7 +196,7 @@ class TransactionController extends Controller
     }
 
     /**
-     * ✅ Mostrar historial de transacciones
+     * ✅ Mostrar historial de transacciones (sin cambios)
      */
     public function history(Request $request)
     {
