@@ -37,6 +37,13 @@
                         </svg>
                         <span>Configuración</span>
                     </a>
+                    {{-- ✅ NUEVA OPCIÓN: Reportes de Comisiones --}}
+                    <a href="{{ route('admin.commission-reports') }}" class="nav-item">
+                        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2V7a2 2 0 012-2h2a2 2 0 002 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 00-2 2h-2a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span>Reportes</span>
+                    </a>
                 </nav>
             </aside>
 
@@ -63,6 +70,38 @@
                                 </svg>
                                 <span>Exportar</span>
                             </button>
+                        </div>
+                    </div>
+
+                    {{-- ✅ NUEVAS ESTADÍSTICAS DE GANANCIAS DEL ADMINISTRADOR --}}
+                    <div class="bg-gradient-to-r from-green-500 to-blue-600 rounded-2xl shadow-lg p-6 mb-8 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-xl font-bold mb-2">Mis Ganancias por Comisiones</h2>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div>
+                                        <p class="text-green-100 text-sm">Total Acumulado</p>
+                                        <p class="text-2xl font-bold">${{ number_format($adminCommissionStats['total_admin_earnings'], 2) }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-green-100 text-sm">Hoy</p>
+                                        <p class="text-xl font-semibold">${{ number_format($adminCommissionStats['admin_earnings_today'], 2) }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-green-100 text-sm">Este Mes</p>
+                                        <p class="text-xl font-semibold">${{ number_format($adminCommissionStats['admin_earnings_this_month'], 2) }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-green-100 text-sm">Mes Anterior</p>
+                                        <p class="text-xl font-semibold">${{ number_format($adminCommissionStats['admin_earnings_last_month'], 2) }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hidden md:block">
+                                <svg class="w-16 h-16 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                            </div>
                         </div>
                     </div>
 
@@ -155,6 +194,50 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                                     </svg>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- ✅ NUEVA SECCIÓN: Análisis de Comisiones por Tipo --}}
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        {{-- Comisiones por Tipo de Transacción --}}
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Mis Comisiones por Tipo</h3>
+                            <div class="space-y-4">
+                                @foreach($adminCommissionStats['commission_by_type'] as $typeData)
+                                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 {{ $typeData->type === 'deposito' ? 'bg-green-500' : 'bg-blue-500' }} rounded-full"></div>
+                                        <div>
+                                            <p class="font-medium text-gray-800 dark:text-white">{{ ucfirst($typeData->type) }}</p>
+                                            <p class="text-sm text-gray-500">{{ $typeData->count }} transacciones</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-bold text-gray-800 dark:text-white">${{ number_format($typeData->total_commission, 2) }}</p>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Evolución Mensual de Comisiones --}}
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Evolución Mensual (Últimos 6 meses)</h3>
+                            <div class="space-y-3">
+                                @foreach($adminCommissionStats['monthly_commissions'] as $monthData)
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-medium text-gray-800 dark:text-white">
+                                            {{ \Carbon\Carbon::createFromDate($monthData->year, $monthData->month, 1)->format('M Y') }}
+                                        </p>
+                                        <p class="text-sm text-gray-500">{{ $monthData->transaction_count }} transacciones</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-bold text-gray-800 dark:text-white">${{ number_format($monthData->total_commission, 2) }}</p>
+                                    </div>
+                                </div>
+                                @endforeach
                             </div>
                         </div>
                     </div>
@@ -254,6 +337,7 @@
                                         <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Monto</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Vendedor</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Cajero</th>
+                                        <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Mi Comisión</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Estado</th>
                                         <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Fecha</th>
                                     </tr>
@@ -271,6 +355,9 @@
                                         <td class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{{ $transaction->initiator->name }}</td>
                                         <td class="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
                                             {{ $transaction->participant ? $transaction->participant->name : 'Sin asignar' }}
+                                        </td>
+                                        <td class="py-3 px-4 text-sm font-medium text-green-600 dark:text-green-400">
+                                            ${{ number_format($transaction->admin_commission ?? 0, 2) }}
                                         </td>
                                         <td class="py-3 px-4">
                                             @php

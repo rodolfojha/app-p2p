@@ -35,13 +35,74 @@ class AdminDashboardController extends Controller
         // Datos para gráficos
         $chartData = $this->getChartData();
 
+        // ✅ NUEVAS ESTADÍSTICAS DE COMISIONES PARA EL ADMIN
+        $adminCommissionStats = $this->getAdminCommissionStats();
+
         return view('admin.dashboard', compact(
             'stats', 
             'recentTransactions', 
             'userStats', 
             'alerts',
-            'chartData'
+            'chartData',
+            'adminCommissionStats' // ✅ NUEVO
         ));
+    }
+
+    /**
+     * ✅ NUEVAS ESTADÍSTICAS DE COMISIONES DEL ADMINISTRADOR
+     */
+    private function getAdminCommissionStats()
+    {
+        $adminId = Auth::id();
+        $today = Carbon::today();
+        $thisMonth = Carbon::now()->startOfMonth();
+        $lastMonth = Carbon::now()->subMonth()->startOfMonth();
+
+        return [
+            // Ganancias por comisiones del admin
+            'total_admin_earnings' => Transaction::where('status', 'completed')
+                ->where('admin_id', $adminId)
+                ->sum('admin_commission'),
+            
+            'admin_earnings_today' => Transaction::where('status', 'completed')
+                ->where('admin_id', $adminId)
+                ->whereDate('created_at', $today)
+                ->sum('admin_commission'),
+            
+            'admin_earnings_this_month' => Transaction::where('status', 'completed')
+                ->where('admin_id', $adminId)
+                ->where('created_at', '>=', $thisMonth)
+                ->sum('admin_commission'),
+            
+            'admin_earnings_last_month' => Transaction::where('status', 'completed')
+                ->where('admin_id', $adminId)
+                ->whereBetween('created_at', [
+                    $lastMonth, 
+                    $lastMonth->copy()->endOfMonth()
+                ])
+                ->sum('admin_commission'),
+
+            // Distribución de comisiones por tipo de transacción
+            'commission_by_type' => Transaction::where('status', 'completed')
+                ->where('admin_id', $adminId)
+                ->select('type')
+                ->selectRaw('COUNT(*) as count')
+                ->selectRaw('SUM(admin_commission) as total_commission')
+                ->groupBy('type')
+                ->get(),
+
+            // Comisiones por mes (últimos 6 meses)
+            'monthly_commissions' => Transaction::where('status', 'completed')
+                ->where('admin_id', $adminId)
+                ->where('created_at', '>=', Carbon::now()->subMonths(6))
+                ->select(DB::raw('YEAR(created_at) as year'), DB::raw('MONTH(created_at) as month'))
+                ->selectRaw('SUM(admin_commission) as total_commission')
+                ->selectRaw('COUNT(*) as transaction_count')
+                ->groupBy('year', 'month')
+                ->orderBy('year', 'desc')
+                ->orderBy('month', 'desc')
+                ->get(),
+        ];
     }
 
     /**
@@ -305,7 +366,7 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Configuración del sistema
+     * ✅ NUEVA FUNCIÓN: Configuración del sistema con gestión de comisiones
      */
     public function settings()
     {
@@ -316,5 +377,95 @@ class AdminDashboardController extends Controller
         $commissionSettings = CommissionSettings::orderBy('created_at', 'desc')->get();
 
         return view('admin.settings', compact('commissionSettings'));
+    }
+
+    /**
+     * ✅ NUEVA FUNCIÓN: Actualizar configuración de comisiones
+     */
+    public function updateCommissionSettings(Request $request)
+    {
+        if (!Auth::user()->isAdmin()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'type' => 'required|in:deposito,retiro',
+            'total_percentage' => 'required|numeric|min:0|max:100',
+            'admin_percentage' => 'required|numeric|min:0|max:100',
+            'cashier_percentage' => 'required|numeric|min:0|max:100',
+            'seller_percentage' => 'required|numeric|min:0|max:100',
+            'referral_percentage' => 'required|numeric|min:0|max:100',
+        ]);
+
+        // Verificar que la suma de porcentajes sea 100%
+        $totalDistribution = $request->admin_percentage + $request->cashier_percentage + 
+                           $request->seller_percentage + $request->referral_percentage;
+
+        if ($totalDistribution != 100) {
+            return back()->withErrors([
+                'distribution' => 'La suma de porcentajes de distribución debe ser exactamente 100%'
+            ]);
+        }
+
+        // Desactivar configuración anterior
+        CommissionSettings::where('type', $request->type)
+            ->update(['is_active' => false]);
+
+        // Crear nueva configuración
+        CommissionSettings::create([
+            'type' => $request->type,
+            'total_percentage' => $request->total_percentage,
+            'admin_percentage' => $request->admin_percentage,
+            'cashier_percentage' => $request->cashier_percentage,
+            'seller_percentage' => $request->seller_percentage,
+            'referral_percentage' => $request->referral_percentage,
+            'is_active' => true
+        ]);
+
+        return back()->with('success', 'Configuración de comisiones actualizada exitosamente');
+    }
+
+    /**
+     * ✅ NUEVA FUNCIÓN: Ver reportes detallados de comisiones
+     */
+    public function commissionReports(Request $request)
+    {
+        if (!Auth::user()->isAdmin()) {
+            abort(403);
+        }
+
+        $startDate = $request->start_date ?? Carbon::now()->startOfMonth();
+        $endDate = $request->end_date ?? Carbon::now()->endOfMonth();
+
+        // Reporte de comisiones por usuario
+        $userCommissions = User::withSum(['initiatedTransactions' => function($query) use ($startDate, $endDate) {
+                $query->where('status', 'completed')
+                      ->whereBetween('created_at', [$startDate, $endDate]);
+            }], 'seller_commission')
+            ->withSum(['participatedTransactions' => function($query) use ($startDate, $endDate) {
+                $query->where('status', 'completed')
+                      ->whereBetween('created_at', [$startDate, $endDate]);
+            }], 'cashier_commission')
+            ->withSum(['referralTransactions' => function($query) use ($startDate, $endDate) {
+                $query->where('status', 'completed')
+                      ->whereBetween('created_at', [$startDate, $endDate]);
+            }], 'referral_commission')
+            ->having('initiated_transactions_sum_seller_commission', '>', 0)
+            ->orHaving('participated_transactions_sum_cashier_commission', '>', 0)
+            ->orHaving('referral_transactions_sum_referral_commission', '>', 0)
+            ->get();
+
+        // Comisiones del administrador
+        $adminCommissions = Transaction::where('status', 'completed')
+            ->where('admin_id', Auth::id())
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('admin_commission');
+
+        return view('admin.commission-reports', compact(
+            'userCommissions', 
+            'adminCommissions', 
+            'startDate', 
+            'endDate'
+        ));
     }
 }

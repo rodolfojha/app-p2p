@@ -6,7 +6,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TransactionAcceptController;
 use App\Http\Controllers\CashierPaymentMethodController;
-use App\Http\Controllers\AdminDashboardController; // ✅ NUEVO
+use App\Http\Controllers\AdminDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +23,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-// ✅ NUEVAS RUTAS ADMINISTRATIVAS
+// ✅ RUTAS ADMINISTRATIVAS ACTUALIZADAS
 Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
     // Dashboard administrativo
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])
@@ -41,9 +41,21 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
     Route::get('/settings', [AdminDashboardController::class, 'settings'])
         ->name('admin.settings');
     
+    // ✅ NUEVAS RUTAS PARA GESTIÓN DE COMISIONES
+    Route::post('/commission-settings', [AdminDashboardController::class, 'updateCommissionSettings'])
+        ->name('admin.commission-settings.update');
+    
+    // Reportes de comisiones
+    Route::get('/commission-reports', [AdminDashboardController::class, 'commissionReports'])
+        ->name('admin.commission-reports');
+    
     // Exportación de datos
     Route::post('/export', [AdminDashboardController::class, 'export'])
         ->name('admin.export');
+    
+    // ✅ NUEVAS RUTAS PARA API/AJAX
+    Route::get('/api/commission-preview', [AdminDashboardController::class, 'previewCommissions'])
+        ->name('admin.api.commission-preview');
 });
 
 // Rutas de transacciones

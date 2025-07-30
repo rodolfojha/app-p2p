@@ -147,12 +147,30 @@ class User extends Authenticatable
     }
 
     /**
+     * ✅ NUEVA RELACIÓN: Transacciones donde es el administrador
+     */
+    public function adminTransactions()
+    {
+        return $this->hasMany(Transaction::class, 'admin_id');
+    }
+
+    /**
+     * ✅ NUEVA RELACIÓN: Transacciones donde es el referido
+     */
+    public function referralTransactions()
+    {
+        return $this->hasMany(Transaction::class, 'referral_id');
+    }
+
+    /**
      * ✅ Todas las transacciones relacionadas
      */
     public function allTransactions()
     {
         return Transaction::where('initiator_id', $this->id)
-                         ->orWhere('participant_id', $this->id);
+                         ->orWhere('participant_id', $this->id)
+                         ->orWhere('admin_id', $this->id)
+                         ->orWhere('referral_id', $this->id);
     }
 
     /**
@@ -188,9 +206,110 @@ class User extends Authenticatable
     }
 
     /**
-     * ✅ Obtener ganancias totales por comisiones
+     * ✅ NUEVA FUNCIÓN: Obtener ganancias totales por comisiones de administrador
      */
-    public function getTotalCommissionEarnings()
+    public function getAdminCommissionEarnings($startDate = null, $endDate = null)
+    {
+        $query = Transaction::where('status', 'completed')
+                           ->where('admin_id', $this->id);
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        return $query->sum('admin_commission');
+    }
+
+    /**
+     * ✅ NUEVA FUNCIÓN: Obtener ganancias como cajero
+     */
+    public function getCashierCommissionEarnings($startDate = null, $endDate = null)
+    {
+        $query = Transaction::where('status', 'completed')
+                           ->where('participant_id', $this->id);
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        return $query->sum('cashier_commission');
+    }
+
+    /**
+     * ✅ NUEVA FUNCIÓN: Obtener ganancias como vendedor
+     */
+    public function getSellerCommissionEarnings($startDate = null, $endDate = null)
+    {
+        $query = Transaction::where('status', 'completed')
+                           ->where('initiator_id', $this->id);
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        return $query->sum('seller_commission');
+    }
+
+    /**
+     * ✅ NUEVA FUNCIÓN: Obtener ganancias como referido
+     */
+    public function getReferralCommissionEarnings($startDate = null, $endDate = null)
+    {
+        $query = Transaction::where('status', 'completed')
+                           ->where('referral_id', $this->id);
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        return $query->sum('referral_commission');
+    }
+
+    /**
+     * ✅ NUEVA FUNCIÓN: Obtener ganancias totales por comisiones (todos los roles)
+     */
+    public function getTotalCommissionEarnings($startDate = null, $endDate = null)
+    {
+        return $this->getAdminCommissionEarnings($startDate, $endDate) +
+               $this->getCashierCommissionEarnings($startDate, $endDate) +
+               $this->getSellerCommissionEarnings($startDate, $endDate) +
+               $this->getReferralCommissionEarnings($startDate, $endDate);
+    }
+
+    /**
+     * ✅ NUEVA FUNCIÓN: Obtener estadísticas de comisiones por período
+     */
+    public function getCommissionStats($startDate = null, $endDate = null)
+    {
+        return [
+            'admin_commissions' => $this->getAdminCommissionEarnings($startDate, $endDate),
+            'cashier_commissions' => $this->getCashierCommissionEarnings($startDate, $endDate),
+            'seller_commissions' => $this->getSellerCommissionEarnings($startDate, $endDate),
+            'referral_commissions' => $this->getReferralCommissionEarnings($startDate, $endDate),
+            'total_commissions' => $this->getTotalCommissionEarnings($startDate, $endDate),
+        ];
+    }
+
+    /**
+     * ✅ NUEVA FUNCIÓN: Obtener transacciones que generaron comisiones para el admin
+     */
+    public function getAdminCommissionTransactions($startDate = null, $endDate = null)
+    {
+        $query = Transaction::where('status', 'completed')
+                           ->where('admin_id', $this->id)
+                           ->where('admin_commission', '>', 0);
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        return $query->with(['initiator', 'participant'])->get();
+    }
+
+    /**
+     * ✅ Obtener ganancias totales por comisiones (versión original mantenida para compatibilidad)
+     */
+    public function getTotalCommissionEarningsLegacy()
     {
         return Transaction::where('status', 'completed')
                          ->where(function($query) {
